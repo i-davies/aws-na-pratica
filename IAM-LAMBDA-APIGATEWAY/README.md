@@ -55,48 +55,66 @@ AWS Lambda permite executar código em resposta a eventos, sem a necessidade de 
 
 ## 4. Integrando Lambda com API Gateway
 
-O API Gateway é um serviço mais robusto para criar, gerenciar e proteger APIs em escala. Vamos criar uma API REST que se integra com nossa função Lambda e possui dois métodos com diferentes tipos de autorização.
+O API Gateway permite criar, gerenciar e proteger APIs em escala. Em 2025, o console foi atualizado e o fluxo recomendado para usar chaves de API e planos de uso continua sendo a criação de uma **REST API** (não confundir com **HTTP API**). HTTP APIs são mais simples/rápidas, mas não oferecem API Keys/Usage Plans.
 
-1.  **Criar o Gatilho:** Na página da sua função Lambda, vá em **Adicionar gatilho** (Add trigger) e selecione **API Gateway**. Crie uma nova **API REST** (REST API).
+1.  **Criar a REST API (novo console):**
+    -   Acesse o console: API Gateway → APIs → REST APIs → **Create API** → **New API**.
+    -   Defina um nome (ex.: `lambda-demo-api`) e mantenha o tipo de endpoint como **Regional**. Clique em **Create**.
+2.  **Criar recurso e método:**
+    -   Em **Resources**, clique em **Create Resource** (ex.: nome: `private`, path: `/private`).
+    -   Selecione o recurso criado e clique em **Create Method** (ex.: `GET`).
+3.  **Anexar integração Lambda:**
+    -   Em **Integration type**, selecione **Lambda Function**.
+    -   Escolha a região e a sua função Lambda. Deixe habilitado o proxy (Lambda proxy integration) quando disponível.
+    -   Salve. Se solicitado, permita que o API Gateway invoque a função (permissão `lambda:InvokeFunction`).
+
+    - Configurações de solicitação de método -> clique em `editar`
+    - Autorização: selecione `Nenhuma`
+    - Validador de solicitação: selecione `Validar parâmetros de string de consulta e cabeçalhos`
+    - Marque a opção `Chaves de API obrigatória`
+    - Salve as alterações.
+    - Clique em implantar API (Deploy) para aplicar as mudanças, selecione o estágio (ex.: `prod`).
+
+4.  **Implantar a API (Deploy):**
+    -   Vá em **Implantar API** → **Novo estágio** → nome do estágio (ex.: `prod`) → **Deploy**.
+    -   Copie a **Invoke URL** do estágio (formato `https://{apiId}.execute-api.{regiao}.amazonaws.com/prod`).
 
 ### 4.1. Método 1: Acesso via Chave de API (API Key)
 
-Este método será acessível por qualquer cliente que apresente uma chave de API válida no cabeçalho da requisição.
+Este método exige que o cliente envie um cabeçalho `x-api-key` válido. Disponível apenas em REST APIs com Usage Plans.
 
-1.  **Configurar o Método:**
-    -   No console do API Gateway, acesse sua API recém-criada.
-    -   Em **Recursos** (Resources), selecione o método (ex: `ANY` ou crie um `GET`) e vá em **Solicitação de método** (Method Request).
-    -   Defina **Autorização** (Authorization) como `Nenhum` (None).
-    -   Defina **Chave de API necessária** (API Key Required) como `true`.
-    -   Em **Validador de solicitações** (Request Validator), configure a validação do corpo, parâmetros e cabeçalhos.
-2.  **Criar Chave de API:**
-    -   No menu lateral do API Gateway, vá em **Chaves de API** (API Keys) e crie uma nova chave. Anote o valor.
-3.  **Criar Plano de Uso (Usage Plan):**
-    -   Vá em **Planos de uso** (Usage Plans), crie um novo plano.
-    -   **Associe a API:** Adicione seu API e o *stage* (estágio, ex: `prod`) ao plano.
-    -   **Associe a Chave:** Adicione a chave de API criada no passo anterior a este plano.
-4.  **Executar no Postman:**
-    -   Faça uma requisição para a URL do seu método.
-    -   Na aba **Cabeçalhos** (Headers), adicione o header `x-api-key` com o valor da chave que você gerou.
+1.  **Marcar o método como “API Key Required”:**
+    -   Em **Resources**, selecione o método (ex.: `GET`) → **Method Request** (Solicitação de método).
+    -   Defina **Authorization** como `NONE` (Nenhum) e **API Key Required** como `true`. Salve.
+    -   Reimplante a API em **Stages** (qualquer mudança de método requer novo deploy).
+2.  **Criar a Chave de API:**
+    -   Em **API Keys** → **Create API key** → gere a chave. Anote o valor.
+3.  **Criar o Plano de Uso (Usage Plan):**
+    -   Em **Usage Plans** → **Create** → defina limites (opcional).
+    -   **Add API Stage:** associe sua API e o estágio (ex.: `prod`).
+    -   **Add API Key:** vincule a chave criada ao plano de uso.
+
+5.  **Testar:**
+    -   Faça uma requisição para a Invoke URL do método.
+    -   Inclua o cabeçalho `x-api-key: <SUA_CHAVE>`. Sem esse cabeçalho, o API Gateway retorna `403 Forbidden`.
 
 ### 4.2. Método 2: Acesso via Autenticação IAM
 
-Este método exigirá que a requisição seja assinada digitalmente com as credenciais de um usuário IAM autorizado.
+Neste método, as chamadas devem ser assinadas com SigV4 usando credenciais AWS válidas (usuário/role com permissão de invocar a API).
 
-1.  **Criar um Novo Método:**
-    -   Em **Recursos** (Resources), crie um novo recurso (ex: `/private`) e um novo método dentro dele (ex: `GET`).
-    -   Integre este método com a mesma função Lambda.
-    -   Em **Solicitação de método** (Method Request), defina **Autorização** (Authorization) como `AWS_IAM`.
-2.  **Criar Usuário Programático:**
-    -   No IAM, crie um usuário **sem acesso ao console** (ex: `api-invoker`).
-    -   Anexe a política `AmazonAPIGatewayInvokeFullAccess`.
-    -   Salve o **ID da chave de acesso** (Access Key ID) e a **Chave de acesso secreta** (Secret Access Key).
-3.  **Executar no Postman:**
-    -   Use a URL do novo método (`/private`).
-    -   Na aba **Autorização** (Authorization), selecione o tipo **Assinatura da AWS** (AWS Signature).
-    -   Preencha os campos:
-        -   `AccessKey`: Seu ID da chave de acesso.
-        -   `SecretKey`: Sua Chave de acesso secreta.
-        -   `AWS Region`: A região da sua API (ex: `us-east-2`).
-        -   `Service Name`: `execute-api`.
-    -   Envie a requisição. O Postman irá assiná-la corretamente para a autenticação IAM.
+1.  **Configurar o método para IAM:**
+    -   Em **Resources**, selecione o método → **Method Request**.
+    -   Defina **Authorization** como `AWS_IAM`. Salve e faça deploy novamente do estágio.
+2.  **Criar credenciais programáticas e permissões mínimas:**
+    -   No IAM, crie um usuário programático (ex.: `api-invoker`) ou use uma role.
+    -   Conceda a permissão de invocação (exemplo de política mínima):
+        ```json
+        AmazonAPIGatewayInvokeFullAccess
+        ```
+    - Crie Chaves de acesso em Credenciais de segurança.
+    - Selecione a opção `Outros
+Seu caso de uso não está listado aqui.`
+    - Anote a Chave de acesso e a Chave secreta.
+3.  **Assinar a requisição (Postman ou código):**
+    -   No Postman, escolha **Authorization: AWS Signature** e informe `AccessKey`, `SecretKey`, `AWS Region` (ex.: `us-east-1`) e `Service Name` = `execute-api`.
+    -   Envie a requisição para a Invoke URL. Sem assinatura correta, o retorno será `403`.
