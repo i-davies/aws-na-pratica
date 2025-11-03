@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Amazon Lightsail na Prática — Projeto Completo</title>
+  <meta name="description" content="Aplicação web completa usando Amazon Lightsail com FastAPI, PostgreSQL e CDN — 100% Free Tier">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <h1>Amazon Lightsail na Prática</h1>
+  </header>
+
+  <main class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <h2>Aplicação web completa na AWS</h2>
+      <p class="lead">
+        Esta página que você está vendo agora está hospedada no <strong>Lightsail Object Storage</strong> e sendo distribuída globalmente pela <strong>Lightsail CDN</strong>. Ela faz parte de um projeto completo que inclui API, banco de dados e hospedagem estática.
+      </p>
+      <div style="margin-top:30px">
+        <a href="https://github.com/i-davies/aws-na-pratica" class="btn" target="_blank" rel="noopener">Ver no GitHub</a>
+      </div>
+    </section>
+
+    <!-- What we built -->
+    <section class="card">
+      <h2>O que construímos nesta aula</h2>
+      <p>Uma aplicação web moderna e completa usando os recursos do Amazon Lightsail:</p>
+      <div class="grid">
+        <div class="tile">
+          <h3>Instância Linux</h3>
+          <p>Amazon Linux 2023 rodando uma API REST em FastAPI (Python) na porta 8000</p>
+        </div>
+        <div class="tile">
+          <h3>Banco PostgreSQL</h3>
+          <p>Managed Database com backups automáticos, alta disponibilidade e conexão segura via TLS. CRUD completo de tarefas (todos).</p>
+        </div>
+        <div class="tile">
+          <h3>Object Storage + CDN</h3>
+          <p>Hospedagem de arquivos estáticos (esta landing page) com distribuição global via CDN para baixa latência e cache automático.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture -->
+    <section class="card">
+      <h2>Arquitetura da solução</h2>
+      <p style="margin-bottom:24px">Veja como os componentes se conectam para formar uma aplicação web completa:</p>
+      
+      <div style="background:#f9fafb; border:2px solid #e5e7eb; border-radius:12px; padding:32px; max-width:700px; margin:0 auto">
+        <div style="text-align:center; line-height:2; font-family:monospace; font-size:15px">
+          <div style="margin-bottom:16px">
+            <strong style="color:#232f3e">Usuário</strong>
+          </div>
+          <div style="color:#6b7280">↓</div>
+          <div style="background:#fff; border:2px solid #ff9900; border-radius:8px; padding:12px; margin:12px 0">
+            <strong style="color:#ff9900">Lightsail CDN</strong><br>
+            <span style="font-size:13px; color:#6b7280">Landing page estática (você está aqui!)</span>
+          </div>
+          <div style="color:#6b7280">↓ JavaScript fetch()</div>
+          <div style="background:#fff; border:2px solid #232f3e; border-radius:8px; padding:12px; margin:12px 0">
+            <strong style="color:#232f3e">Lightsail Instance</strong><br>
+            <span style="font-size:13px; color:#6b7280">API FastAPI (porta 8000)</span>
+          </div>
+          <div style="color:#6b7280">↓ SQL queries</div>
+          <div style="background:#fff; border:2px solid #10b981; border-radius:8px; padding:12px; margin:12px 0">
+            <strong style="color:#10b981">Lightsail Managed Database</strong><br>
+            <span style="font-size:13px; color:#6b7280">PostgreSQL com TLS</span>
+          </div>
+        </div>
+      </div>
+
+      <p style="margin-top:24px; text-align:center; color:#6b7280">
+        <strong>Fluxo:</strong> O usuário acessa a landing page via CDN (cache global) → JavaScript faz requisições HTTP para a API → A API consulta o PostgreSQL → Dados retornam como JSON e são renderizados na tela.
+      </p>
+    </section>
+
+    <!-- Interactive Demo -->
+    <section class="card">
+      <h2>Demonstração interativa</h2>
+      <p style="margin-bottom:20px">Conecte-se à API FastAPI rodando na instância Lightsail e veja as tarefas em tempo real:</p>
+      
+      <div style="max-width:600px; margin:0 auto">
+        <div style="margin-bottom:16px">
+          <label for="apiUrl" style="display:block; margin-bottom:8px; font-weight:600">Endpoint da API:</label>
+          <input 
+            type="text" 
+            id="apiUrl" 
+            placeholder="http://SEU-IP-PUBLICO:8000"
+            style="width:100%; padding:12px; border:2px solid #e5e7eb; border-radius:8px; font-size:15px"
+          />
+          <p style="font-size:13px; color:#6b7280; margin-top:6px">
+            Cole o IP público da sua instância Lightsail (ex: http://12.34.56.78:8000)
+          </p>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-bottom:24px">
+          <button onclick="testConnection()" class="btn" style="flex:1; cursor:pointer; border:none; font-size:15px">
+            Testar conexão
+          </button>
+          <button onclick="loadTodos()" class="btn-secondary" style="flex:1; cursor:pointer; font-size:15px; background:#232f3e; color:#fff; border:none; padding:12px 24px; border-radius:8px; font-weight:600">
+            Carregar tarefas
+          </button>
+        </div>
+
+        <div id="status" style="padding:16px; border-radius:8px; margin-bottom:16px; display:none"></div>
+        <div id="todos" style="margin-top:20px"></div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Projeto educacional — Amazon Lightsail Free Tier 2025</p>
+      <p style="font-size:0.85em; margin-top:10px; color:#6b7280">
+        Desenvolvido para demonstrar os recursos do Lightsail de forma prática e acessível
+      </p>
+    </footer>
+  </main>
+
+  <script>
+    // Salva a URL da API no localStorage para persistir entre reloads
+    const apiUrlInput = document.getElementById('apiUrl');
+    const savedUrl = localStorage.getItem('lightsailApiUrl');
+    if (savedUrl) {
+      apiUrlInput.value = savedUrl;
+    }
+
+    apiUrlInput.addEventListener('change', (e) => {
+      localStorage.setItem('lightsailApiUrl', e.target.value);
+    });
+
+    function getApiUrl() {
+      const url = apiUrlInput.value.trim();
+      if (!url) {
+        showStatus('Por favor, insira o endpoint da API', 'error');
+        return null;
+      }
+      return url.replace(/\/$/, ''); // Remove trailing slash
+    }
+
+    function showStatus(message, type = 'info') {
+      const statusDiv = document.getElementById('status');
+      statusDiv.style.display = 'block';
+      statusDiv.textContent = message;
+      
+      if (type === 'success') {
+        statusDiv.style.background = '#d1fae5';
+        statusDiv.style.color = '#065f46';
+        statusDiv.style.border = '2px solid #10b981';
+      } else if (type === 'error') {
+        statusDiv.style.background = '#fee2e2';
+        statusDiv.style.color = '#991b1b';
+        statusDiv.style.border = '2px solid #ef4444';
+      } else {
+        statusDiv.style.background = '#dbeafe';
+        statusDiv.style.color = '#1e40af';
+        statusDiv.style.border = '2px solid #3b82f6';
+      }
+    }
+
+    async function testConnection() {
+      const apiUrl = getApiUrl();
+      if (!apiUrl) return;
+
+      showStatus('Testando conexão com a API...', 'info');
+
+      try {
+        const response = await fetch(`${apiUrl}/health`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        showStatus(`✓ Conexão bem-sucedida! Status: ${data.status} | DB: ${data.database}`, 'success');
+      } catch (error) {
+        showStatus(`✗ Erro ao conectar: ${error.message}`, 'error');
+        console.error('Connection error:', error);
+      }
+    }
+
+    async function loadTodos() {
+      const apiUrl = getApiUrl();
+      if (!apiUrl) return;
+
+      showStatus('Carregando tarefas do PostgreSQL...', 'info');
+
+      try {
+        const response = await fetch(`${apiUrl}/todos`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const todos = await response.json();
+        displayTodos(todos);
+        showStatus(`✓ ${todos.length} tarefa(s) carregada(s) com sucesso`, 'success');
+      } catch (error) {
+        showStatus(`✗ Erro ao carregar tarefas: ${error.message}`, 'error');
+        console.error('Load error:', error);
+      }
+    }
+
+    function displayTodos(todos) {
+      const todosDiv = document.getElementById('todos');
+      
+      if (todos.length === 0) {
+        todosDiv.innerHTML = '<p style="text-align:center; color:#6b7280; padding:20px">Nenhuma tarefa encontrada. Crie uma via POST /todos</p>';
+        return;
+      }
+
+      const html = todos.map(todo => `
+        <div style="background:#fafafa; border:2px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center">
+          <div>
+            <strong style="color:#232f3e; font-size:16px">${escapeHtml(todo.title)}</strong>
+            <span style="margin-left:12px; font-size:13px; padding:4px 8px; border-radius:4px; ${todo.done ? 'background:#d1fae5; color:#065f46' : 'background:#fee2e2; color:#991b1b'}">
+              ${todo.done ? '✓ Concluída' : '○ Pendente'}
+            </span>
+          </div>
+          <code style="font-size:13px; color:#6b7280">ID: ${todo.id}</code>
+        </div>
+      `).join('');
+
+      todosDiv.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
